@@ -1,7 +1,7 @@
 import numpy as np
 import graph
 import sys
-
+import math
 def main():
 
     # Le poids des arcs de ce graphe correspondent aux capacités
@@ -31,32 +31,70 @@ def example():
     
     return g
 
+
 # Fonction appliquant l'algorithme de Ford-Fulkerson à un graphe
 # Les noms des sommets sources est puits sont fournis en entrée
 def fordFulkerson(g, sName, tName):
 
-    """
-    Marquage des sommets du graphe:
-     - mark[i] est égal à +j si le sommet d'indice i peut être atteint en augmentant le flot sur l'arc ji
-     - mark[i] est égal à  -j si le sommet d'indice i peut être atteint en diminuant le flot de l'arc ji
-     - mark[i] est égal à sys.float_info.max si le sommet n'est pas marqué
-    """
-    mark = [0] * g.n
-    
-    # Récupérer l'indice de la source et du puits
     s = g.indexOf(sName)
     t = g.indexOf(tName)
-    
-    # Créer un nouveau graphe contenant les même sommets que g
-    flow = graph.Graph(g.nodes)
+    if s < 0 or t < 0:
+        raise ValueError("Source or sink not found in graph nodes.")
 
-    # Récupérer tous les arcs du graphe 
-    arcs = g.getArcs()
+    n = g.n
+    cap = g.adjacency                       
+    flow = graph.Graph(g.nodes)             
+    f = flow.adjacency
 
-    # Ajouter votre code ici
-    # ...
-    
-    return flow
+    max_value = 0.0
+    INF = math.inf
+
+    while True:
+        mark = [None] * n                   
+        mark[s] = (+1, s)                   
+        q = [s]
+
+        while q and mark[t] is None:
+            u = q.pop(0)
+
+            for v in range(n):
+                if mark[v] is None and cap[u][v] != 0 and f[u][v] < cap[u][v]:
+                    mark[v] = (+1, u)
+                    q.append(v)
+
+            for v in range(n):
+                if mark[v] is None and cap[v][u] != 0 and f[v][u] > 0:
+                    mark[v] = (-1, u)
+                    q.append(v)
+
+        if mark[t] is None:
+            S_star = {i for i in range(n) if mark[i] is not None}
+            T_star = set(range(n)) - S_star
+            return flow, max_value, S_star, T_star
+
+        delta = INF
+        v = t
+        while v != s:
+            sign, pred = mark[v]
+            if sign == +1:
+                residual = cap[pred][v] - f[pred][v]
+            else:
+                residual = f[v][pred]
+            if residual < delta:
+                delta = residual
+            v = pred
+
+        v = t
+        while v != s:
+            sign, pred = mark[v]
+            if sign == +1:
+                f[pred][v] += delta
+            else:
+                f[v][pred] -= delta
+            v = pred
+
+        max_value += delta
+
    
 if __name__ == '__main__':
     main()
